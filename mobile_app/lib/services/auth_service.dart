@@ -6,8 +6,8 @@ import '../models/user_model.dart';
 class AuthService {
   // Use 10.0.2.2 for Android emulator to access localhost
   // Use your machine's IP address for physical device
-  // static const String baseUrl = "http://10.0.2.2:5000/api/user";
-  static const String baseUrl = "http://10.62.60.169:5000/api/user";
+  // static const String baseUrl = "http://10.0.2.2:7000/api/user";
+  static const String baseUrl = "http://10.62.60.169:7000/api/user";
 
   Future<User?> login(String email, String password) async {
     print("Attempting login to $baseUrl/login");
