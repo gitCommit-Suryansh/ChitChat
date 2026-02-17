@@ -3,10 +3,11 @@ import 'package:http/http.dart' as http;
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../models/user_model.dart';
+import '../utils/constants.dart';
 
 class ChatService {
-//   static const String baseUrl = "http://10.0.2.2:5000/api";
-  static const String baseUrl = "http://10.62.60.169:5000/api";
+
+  static const String baseUrl = AppConstants.baseUrl;
 
   Future<List<Chat>> fetchChats(String token) async {
     print("Fetching chats from $baseUrl/chat");

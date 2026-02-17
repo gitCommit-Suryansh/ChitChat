@@ -4,6 +4,7 @@ import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../models/user_model.dart';
 import '../services/chat_service.dart';
+import '../utils/constants.dart';
 
 class ChatProvider with ChangeNotifier {
   final ChatService _chatService = ChatService();
@@ -11,6 +12,7 @@ class ChatProvider with ChangeNotifier {
   List<Message> _messages = [];
   bool _isLoading = false;
   IO.Socket? _socket;
+  final String _socketUrl = AppConstants.socketUrl;
   String? _activeChatId;
 
   List<Chat> get chats => _chats;
@@ -25,7 +27,7 @@ class ChatProvider with ChangeNotifier {
   void initSocket(User user) {
     if (_socket != null && _socket!.connected) return;
 
-    _socket = IO.io('http://10.62.60.169:5000', <String, dynamic>{
+    _socket = IO.io(_socketUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });

@@ -2,12 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
+import '../utils/constants.dart';
 
 class AuthService {
-  // Use 10.0.2.2 for Android emulator to access localhost
-  // Use your machine's IP address for physical device
-  // static const String baseUrl = "http://10.0.2.2:7000/api/user";
-  static const String baseUrl = "http://10.62.60.169:7000/api/user";
+  static const String baseUrl = "${AppConstants.baseUrl}/user";
 
   Future<User?> login(String email, String password) async {
     print("Attempting login to $baseUrl/login");

@@ -58,8 +58,13 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Image.asset(
+                  'assets/logo.png',
+                  height: 100,
+                ),
+                const SizedBox(height: 16),
                 const Text(
-                  'KwikChat',
+                  'ChitChat',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 32,

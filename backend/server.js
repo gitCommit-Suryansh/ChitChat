@@ -13,6 +13,7 @@ const io = new Server(server, {
       "http://localhost:3000",
       "http://localhost:7001",
       "http://147.79.71.199:7001",
+      "https://chitchat.bufferworks.in",
     ],
     methods: ["GET", "POST"],
   },
