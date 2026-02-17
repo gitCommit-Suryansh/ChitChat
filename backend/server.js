@@ -9,7 +9,11 @@ dotenv.config();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:7001",
+      "http://147.79.71.199:7001",
+    ],
     methods: ["GET", "POST"],
   },
 });
