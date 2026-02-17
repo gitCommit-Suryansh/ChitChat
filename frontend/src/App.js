@@ -3,6 +3,9 @@ import { Routes, Route } from "react-router-dom";
 import HomePage from "./Pages/HomePage";
 import ChatPage from "./Pages/ChatPage";
 import "./App.css";
+import axios from "axios";
+
+axios.defaults.baseURL = process.env.REACT_APP_BACKEND_URL;
 
 function App() {
   return (
