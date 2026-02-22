@@ -120,6 +120,10 @@ class ChatTile extends StatelessWidget {
     final chatName = chat.getChatName(currentUser.id);
     final chatPic = chat.getChatPic(currentUser.id);
     final latestMsg = chat.latestMessage;
+    
+    final isUnread = latestMsg != null && 
+                     latestMsg.sender.id != currentUser.id && 
+                     !latestMsg.readBy.any((userId) => userId == currentUser.id);
 
     return ListTile(
       leading: CircleAvatar(
@@ -128,7 +132,10 @@ class ChatTile extends StatelessWidget {
       ),
       title: Text(
         chatName,
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontWeight: isUnread ? FontWeight.w900 : FontWeight.bold,
+          color: isUnread ? Colors.black : Colors.black87,
+        ),
       ),
       subtitle: latestMsg != null
           ? Row(
@@ -149,16 +156,40 @@ class ChatTile extends StatelessWidget {
                     latestMsg.content,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(
+                      color: isUnread ? Colors.black87 : Colors.grey.shade600,
+                      fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                 ),
               ],
             )
           : const Text("No messages yet"),
       trailing: latestMsg != null
-          ? Text(
-              DateFormat('HH:mm').format(latestMsg.createdAt.toLocal()),
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  DateFormat('HH:mm').format(latestMsg.createdAt.toLocal()),
+                  style: TextStyle(
+                    fontSize: 12, 
+                    color: isUnread ? Colors.green : Colors.grey,
+                    fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                if (isUnread) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                ]
+              ],
             )
           : null,
       onTap: () {

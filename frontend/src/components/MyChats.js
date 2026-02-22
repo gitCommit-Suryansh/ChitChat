@@ -112,113 +112,136 @@ const MyChats = ({ fetchAgain }) => {
       <div className="flex flex-col p-3 bg-gray-50 w-full h-full rounded-lg overflow-hidden">
         {chats ? (
           <div className="overflow-y-scroll scrollbar-hide space-y-2">
-            {chats.map((chat) => (
-              <div
-                onClick={() => setSelectedChat(chat)}
-                className={`cursor-pointer w-full flex items-center px-4 py-3 mb-2 rounded-xl transition-all duration-200 border ${
-                  selectedChat === chat
-                    ? "bg-teal-500 text-white shadow-md border-teal-500"
-                    : "bg-white text-gray-800 hover:bg-gray-50 shadow-sm border-gray-100 hover:border-teal-200"
-                }`}
-                key={chat._id}
-              >
-                <div className="mr-4 relative">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-sm ${
-                      selectedChat === chat
-                        ? "bg-white text-teal-500"
-                        : "bg-teal-100 text-teal-600"
-                    }`}
-                  >
-                    {!chat.isGroupChat
-                      ? chat.users
-                          .find((u) => u._id !== user?._id)
-                          ?.name[0].toUpperCase()
-                      : chat.chatName[0].toUpperCase()}
-                  </div>
-                </div>
+            {chats.map((chat) => {
+              const isUnread =
+                chat.latestMessage &&
+                chat.latestMessage.sender._id !== user?._id &&
+                (!chat.latestMessage.readBy ||
+                  !chat.latestMessage.readBy.includes(user?._id));
 
-                <div className="flex flex-col flex-1 overflow-hidden justify-center">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <div className="font-semibold text-[15px] truncate pr-2">
+              return (
+                <div
+                  onClick={() => setSelectedChat(chat)}
+                  className={`cursor-pointer w-full flex items-center px-4 py-3 mb-2 rounded-xl transition-all duration-200 border ${
+                    selectedChat === chat
+                      ? "bg-teal-500 text-white shadow-md border-teal-500"
+                      : "bg-white text-gray-800 hover:bg-gray-50 shadow-sm border-gray-100 hover:border-teal-200"
+                  }`}
+                  key={chat._id}
+                >
+                  <div className="mr-4 relative">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-sm ${
+                        selectedChat === chat
+                          ? "bg-white text-teal-500"
+                          : "bg-teal-100 text-teal-600"
+                      }`}
+                    >
                       {!chat.isGroupChat
-                        ? chat.users.find((u) => u._id !== user?._id)?.name
-                        : chat.chatName}
+                        ? chat.users
+                            .find((u) => u._id !== user?._id)
+                            ?.name[0].toUpperCase()
+                        : chat.chatName[0].toUpperCase()}
                     </div>
-                    {chat.latestMessage && (
-                      <span
-                        className={`text-[11px] whitespace-nowrap ml-2 font-medium tracking-wide ${
-                          selectedChat === chat
-                            ? "text-teal-100"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {formatTime(chat.latestMessage.createdAt)}
-                      </span>
-                    )}
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    {chat.latestMessage ? (
-                      <p
-                        className={`text-[13px] truncate w-full flex items-center ${
-                          selectedChat === chat
-                            ? "text-teal-100"
-                            : "text-gray-500"
+                  <div className="flex flex-col flex-1 overflow-hidden justify-center">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <div
+                        className={`text-[15px] truncate pr-2 ${
+                          isUnread && selectedChat !== chat
+                            ? "font-extrabold text-gray-900"
+                            : "font-semibold"
                         }`}
                       >
-                        {chat.latestMessage.sender._id === user?._id && (
+                        {!chat.isGroupChat
+                          ? chat.users.find((u) => u._id !== user?._id)?.name
+                          : chat.chatName}
+                      </div>
+                      {chat.latestMessage && (
+                        <div className="flex items-center">
                           <span
-                            className={`mr-1 inline-flex items-center ${
+                            className={`text-[11px] whitespace-nowrap ml-2 tracking-wide ${
                               selectedChat === chat
-                                ? "text-teal-200"
-                                : chat.latestMessage.readBy &&
-                                    chat.latestMessage.readBy.length > 0
-                                  ? "text-blue-500"
-                                  : "text-gray-400"
+                                ? "text-teal-100 font-medium"
+                                : isUnread
+                                  ? "text-green-600 font-bold"
+                                  : "text-gray-400 font-medium"
                             }`}
                           >
-                            <i
-                              className={
-                                chat.latestMessage.readBy &&
-                                chat.latestMessage.readBy.length > 0
-                                  ? "fas fa-check-double text-[10px]"
-                                  : "fas fa-check-double text-[10px]" // Use double check always, coloring handled above
-                              }
-                            ></i>
+                            {formatTime(chat.latestMessage.createdAt)}
                           </span>
-                        )}
-                        <span className="truncate">
-                          {chat.latestMessage.sender._id !== user?._id &&
-                            chat.isGroupChat && (
-                              <b
-                                className={`${
-                                  selectedChat === chat
-                                    ? "text-white"
-                                    : "text-gray-700"
-                                } mr-1`}
-                              >
-                                {chat.latestMessage.sender.name}:
-                              </b>
-                            )}
-                          {chat.latestMessage.content}
-                        </span>
-                      </p>
-                    ) : (
-                      <p
-                        className={`text-[13px] italic ${
-                          selectedChat === chat
-                            ? "text-teal-200"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        No messages yet
-                      </p>
-                    )}
+                          {isUnread && selectedChat !== chat && (
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full ml-2"></div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      {chat.latestMessage ? (
+                        <p
+                          className={`text-[13px] truncate w-full flex items-center ${
+                            selectedChat === chat
+                              ? "text-teal-100"
+                              : isUnread
+                                ? "text-gray-900 font-bold"
+                                : "text-gray-500"
+                          }`}
+                        >
+                          {chat.latestMessage.sender._id === user?._id && (
+                            <span
+                              className={`mr-1 inline-flex items-center ${
+                                selectedChat === chat
+                                  ? "text-teal-200"
+                                  : chat.latestMessage.readBy &&
+                                      chat.latestMessage.readBy.length > 0
+                                    ? "text-blue-500"
+                                    : "text-gray-400"
+                              }`}
+                            >
+                              <i
+                                className={
+                                  chat.latestMessage.readBy &&
+                                  chat.latestMessage.readBy.length > 0
+                                    ? "fas fa-check-double text-[10px]"
+                                    : "fas fa-check-double text-[10px]" // Use double check always, coloring handled above
+                                }
+                              ></i>
+                            </span>
+                          )}
+                          <span className="truncate">
+                            {chat.latestMessage.sender._id !== user?._id &&
+                              chat.isGroupChat && (
+                                <b
+                                  className={`${
+                                    selectedChat === chat
+                                      ? "text-white"
+                                      : "text-gray-700"
+                                  } mr-1`}
+                                >
+                                  {chat.latestMessage.sender.name}:
+                                </b>
+                              )}
+                            {chat.latestMessage.content}
+                          </span>
+                        </p>
+                      ) : (
+                        <p
+                          className={`text-[13px] italic ${
+                            selectedChat === chat
+                              ? "text-teal-200"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          No messages yet
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex justify-center items-center h-full">

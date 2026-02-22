@@ -108,13 +108,58 @@ class _ChatScreenState extends State<ChatScreen> {
     final user = Provider.of<AuthProvider>(context).user;
     final chatName = widget.chat.getChatName(user!.id);
 
+    final chatPic = widget.chat.getChatPic(user.id);
+    final isTyping = Provider.of<ChatProvider>(context).isTyping;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(chatName),
+        titleSpacing: 0, // Removes gap between back button and avatar
+        title: Row(
+          children: [
+            CircleAvatar(
+              backgroundImage: NetworkImage(chatPic),
+              radius: 20,
+              backgroundColor: Colors.teal.shade100,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    chatName,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (isTyping)
+                    const Text(
+                      "typing...",
+                      style: TextStyle(
+                        color: Colors.teal,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
         backgroundColor: Colors.white,
         elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black),
-        titleTextStyle: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+        iconTheme: const IconThemeData(color: Colors.black87),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -230,9 +275,21 @@ class _ChatScreenState extends State<ChatScreen> {
                 return const SizedBox.shrink();
               },
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              color: Colors.white,
+            SafeArea(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      offset: const Offset(0, 2),
+                      blurRadius: 5,
+                    )
+                  ],
+                ),
               child: Row(
                 children: [
                   Expanded(
@@ -279,6 +336,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ],
         ),
