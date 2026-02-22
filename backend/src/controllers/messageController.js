@@ -53,4 +53,41 @@ const sendMessage = async (req, res) => {
   }
 };
 
-module.exports = { allMessages, sendMessage };
+// @description     Mark messages as read
+// @route           PUT /api/message/read
+// @access          Protected
+const markMessagesAsRead = async (req, res) => {
+  const { messageIds } = req.body;
+
+  if (!messageIds || messageIds.length === 0) {
+    return res.status(400).send({ message: "No message IDs provided" });
+  }
+
+  try {
+    // Scalable approach: updateMany instead of looping
+    await Message.updateMany(
+      { _id: { $in: messageIds }, readBy: { $ne: req.user._id } },
+      { $addToSet: { readBy: req.user._id } },
+    );
+
+    // Fetch the updated messages to return to client or socket
+    let updatedMessages = await Message.find({ _id: { $in: messageIds } })
+      .populate("sender", "name pic")
+      .populate("chat");
+
+    updatedMessages = await require("../models/User").populate(
+      updatedMessages,
+      {
+        path: "chat.users",
+        select: "name pic email",
+      },
+    );
+
+    res.json(updatedMessages);
+  } catch (error) {
+    res.status(400);
+    throw new Error(error.message);
+  }
+};
+
+module.exports = { allMessages, sendMessage, markMessagesAsRead };

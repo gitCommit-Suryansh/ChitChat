@@ -32,7 +32,6 @@ io.on("connection", (socket) => {
 
   socket.on("join chat", (room) => {
     socket.join(room);
-    console.log("User Joined Room: " + room);
   });
   socket.on("typing", (room) => socket.in(room).emit("typing"));
   socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
@@ -46,6 +45,28 @@ io.on("connection", (socket) => {
       // if (user._id == newMessageRecieved.sender._id) return;
 
       socket.in(user._id).emit("message received", newMessageRecieved);
+    });
+  });
+
+  socket.on("message read", (receivedMessages) => {
+    if (!receivedMessages) return;
+
+    // Socket io client (like flutter) often flattens a 1-element list into an Object. Wrap it back.
+    if (!Array.isArray(receivedMessages)) {
+      receivedMessages = [receivedMessages];
+    }
+
+    if (receivedMessages.length === 0) return;
+
+    var chat = receivedMessages[0].chat;
+    if (!chat || !chat.users)
+      return console.log("chat.users not defined for message read");
+
+    chat.users.forEach((user) => {
+      // Extract the string ID regardless of whether the users array was populated
+      const userId = user._id ? user._id.toString() : user.toString();
+
+      socket.in(userId).emit("messages read updated", receivedMessages);
     });
   });
 
