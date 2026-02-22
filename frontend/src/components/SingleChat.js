@@ -17,8 +17,15 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const [typing, setTyping] = useState(false);
   const [istyping, setIsTyping] = useState(false);
 
-  const { user, selectedChat, setSelectedChat, notification, setNotification } =
-    ChatState();
+  const {
+    user,
+    selectedChat,
+    setSelectedChat,
+    notification,
+    setNotification,
+    chats,
+    setChats,
+  } = ChatState();
 
   const fetchMessages = async () => {
     if (!selectedChat) return;
@@ -36,6 +43,37 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       );
       setMessages(data);
       setLoading(false);
+
+      // Determine unread messages from others
+      const unreadMessages = data.filter(
+        (m) =>
+          m.sender._id !== user._id &&
+          (!m.readBy || !m.readBy.includes(user._id)),
+      );
+
+      if (unreadMessages.length > 0) {
+        // Mark as read in backend
+        try {
+          const { data: updatedMessages } = await axios.put(
+            "/api/message/read",
+            { messageIds: unreadMessages.map((m) => m._id) },
+            config,
+          );
+
+          // Emit socket event to notify senders
+          socket.emit("message read", updatedMessages);
+
+          // Update local state by replacing old unread messages with updated ones
+          const newMessagesList = data.map((m) => {
+            const updated = updatedMessages.find((um) => um._id === m._id);
+            return updated ? updated : m;
+          });
+          setMessages(newMessagesList);
+        } catch (e) {
+          console.error("Failed to mark messages as read", e);
+        }
+      }
+
       socket.emit("join chat", selectedChat._id);
     } catch (error) {
       alert("Error fetching messages");
@@ -63,7 +101,15 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
         );
         socket.emit("new message", data);
         setMessages([...messages, data]);
+
+        // Update the global chats list instantly so "MyChats" moves it to top
+        const updatedChat = { ...selectedChat, latestMessage: data };
+        setChats([
+          updatedChat,
+          ...chats.filter((c) => c._id !== selectedChat._id),
+        ]);
       } catch (error) {
+        console.error(error);
         alert("Error sending message");
       }
     }
@@ -84,7 +130,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   }, [selectedChat]);
 
   useEffect(() => {
-    socket.on("message received", (newMessageRecieved) => {
+    socket.on("message received", async (newMessageRecieved) => {
       if (
         !selectedChatCompare || // if chat is not selected or doesn't match current chat
         selectedChatCompare._id !== newMessageRecieved.chat._id
@@ -94,10 +140,48 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           setFetchAgain(!fetchAgain);
         }
       } else {
-        setMessages([...messages, newMessageRecieved]);
+        // Chat is open! Mark as read immediately.
+        try {
+          const config = {
+            headers: { Authorization: `Bearer ${user.token}` },
+          };
+          const { data: updatedMessages } = await axios.put(
+            "/api/message/read",
+            { messageIds: [newMessageRecieved._id] },
+            config,
+          );
+
+          socket.emit("message read", updatedMessages);
+          setMessages([...messages, updatedMessages[0]]);
+        } catch (e) {
+          // fallback
+          setMessages([...messages, newMessageRecieved]);
+        }
       }
     });
-  });
+
+    socket.on("messages read updated", (updatedMessages) => {
+      // If the chat matches, update the UI
+      if (
+        selectedChatCompare &&
+        selectedChatCompare._id === updatedMessages[0]?.chat._id
+      ) {
+        setMessages((prevMessages) => {
+          return prevMessages.map((m) => {
+            const updated = updatedMessages.find((um) => um._id === m._id);
+            // Replace the old message with the updated one directly
+            return updated ? updated : m;
+          });
+        });
+      }
+    });
+
+    // Cleanup to prevent duplicate listeners
+    return () => {
+      socket.off("message received");
+      socket.off("messages read updated");
+    };
+  }, [selectedChat, fetchAgain, notification, messages]); // added dependencies
 
   const typingHandler = (e) => {
     setNewMessage(e.target.value);

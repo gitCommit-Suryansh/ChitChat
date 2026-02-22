@@ -7,7 +7,7 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [confirmpassword, setConfirmpassword] = useState("");
   const [password, setPassword] = useState("");
-  const [pic, setPic] = useState();
+  const [pic] = useState();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 

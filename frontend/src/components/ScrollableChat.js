@@ -31,6 +31,12 @@ const ScrollableChat = ({ messages }) => {
     return i > 0 && messages[i - 1].sender._id === m.sender._id;
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   return (
     <div className="flex flex-col">
       {messages &&
@@ -73,7 +79,21 @@ const ScrollableChat = ({ messages }) => {
                     {m.sender.name}
                   </span>
                 )}
-              {m.content}
+              <div className="flex items-end justify-between gap-2 mt-1">
+                <span className="break-words max-w-[90%]">{m.content}</span>
+                <div className="flex items-center text-[10px] text-gray-500 flex-shrink-0 mb-[-2px] gap-1">
+                  <span>{formatTime(m.createdAt)}</span>
+                  {m.sender._id === user._id && (
+                    <i
+                      className={`fas fa-check-double ml-1 ${
+                        m.readBy && m.readBy.length > 0
+                          ? "text-blue-500"
+                          : "text-gray-400"
+                      }`}
+                    ></i>
+                  )}
+                </div>
+              </div>
             </span>
           </div>
         ))}
