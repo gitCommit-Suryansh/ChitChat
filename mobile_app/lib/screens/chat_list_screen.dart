@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import 'chat_screen.dart';
@@ -130,12 +131,36 @@ class ChatTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       subtitle: latestMsg != null
-          ? Text(
-              "${latestMsg.sender.name}: ${latestMsg.content}",
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          ? Row(
+              children: [
+                if (latestMsg.sender.id == currentUser.id)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(
+                      Icons.done_all,
+                      size: 14,
+                      color: latestMsg.readBy.isNotEmpty
+                          ? Colors.blue
+                          : Colors.grey.shade500,
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    latestMsg.content,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
             )
           : const Text("No messages yet"),
+      trailing: latestMsg != null
+          ? Text(
+              DateFormat('HH:mm').format(latestMsg.createdAt.toLocal()),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            )
+          : null,
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(

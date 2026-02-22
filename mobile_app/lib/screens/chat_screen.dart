@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart'; // Added this import
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
@@ -20,6 +22,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
   int _prevMessageCount = 0;
+  bool _isTypingLocally = false;
+  Timer? _typingTimer;
 
   @override
   void initState() {
@@ -36,7 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
       chatProvider.setActiveChat(widget.chat.id);
       
       if (auth.user != null) {
-          chatProvider.fetchMessages(widget.chat.id, auth.user!.token);
+          chatProvider.fetchMessages(widget.chat.id, auth.user!.token, auth.user!);
       }
   }
 
@@ -59,9 +63,17 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.clear();
     
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    
+    // Stop typing immediately when message is sent
+    chatProvider.emitStopTyping(widget.chat.id);
+    setState(() {
+      _isTypingLocally = false;
+    });
+    _typingTimer?.cancel();
     
     try {
-        await Provider.of<ChatProvider>(context, listen: false).sendMessage(
+        await chatProvider.sendMessage(
             content, 
             widget.chat.id, 
             auth.user!.token
@@ -77,12 +89,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    // We can't access context easily here if the widget is removed from tree, 
-    // but we should try to clear active chat id.
-    // However, since we use SchedulerBinding in init, let's just leave it or use a proper lifecycle handling.
-    // Actually, we can use WidgetsBinding.instance.addPostFrameCallback in initState to set, 
-    // but in dispose, we can just assume the next screen (ChatList) won't have this chat active.
-    // Better:
+    _typingTimer?.cancel();
     super.dispose();
     _messageController.dispose();
     _scrollController.dispose();
@@ -137,34 +144,65 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (ctx, i) {
                           final msg = chatData.messages[i];
                           final isMe = msg.sender.id == user.id;
-                          return Align(
-                            alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: isMe ? Colors.teal.shade100 : Colors.white,
-                                borderRadius: BorderRadius.circular(12).copyWith(
-                                    bottomRight: isMe ? Radius.zero : null,
-                                    bottomLeft: !isMe ? Radius.zero : null,
-                                ),
-                                boxShadow: [
-                                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2, offset: const Offset(0, 1))
-                                ]
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                   if (!isMe && widget.chat.isGroupChat)
-                                     Text(
-                                        msg.sender.name,
-                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
-                                     ),
-                                   Text(
-                                    msg.content,
-                                    style: const TextStyle(fontSize: 16),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            child: Align(
+                              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                              child: Container(
+                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: isMe ? Colors.teal.shade100 : Colors.white,
+                                  borderRadius: BorderRadius.circular(12).copyWith(
+                                      bottomRight: isMe ? Radius.zero : null,
+                                      bottomLeft: !isMe ? Radius.zero : null,
                                   ),
-                                ],
+                                  boxShadow: [
+                                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2, offset: const Offset(0, 1))
+                                  ]
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                   children: [
+                                      if (!isMe && widget.chat.isGroupChat)
+                                        Text(
+                                           msg.sender.name,
+                                           style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
+                                        ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              msg.content,
+                                              style: const TextStyle(fontSize: 16),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8, bottom: 0),
+                                            child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                    Text(
+                                                        DateFormat('HH:mm').format(msg.createdAt.toLocal()),
+                                                        style: const TextStyle(fontSize: 10, color: Colors.black54),
+                                                    ),
+                                                    if (isMe) ...[
+                                                        const SizedBox(width: 4),
+                                                        Icon(
+                                                            Icons.done_all,
+                                                            size: 14,
+                                                            color: msg.readBy.isNotEmpty ? Colors.blue : Colors.grey.shade400,
+                                                        ),
+                                                    ]
+                                                ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                   ],
+                                ),
                               ),
                             ),
                           );
@@ -172,6 +210,25 @@ class _ChatScreenState extends State<ChatScreen> {
                       );
                 },
               ),
+            ),
+            Consumer<ChatProvider>(
+              builder: (ctx, chatData, child) {
+                if (chatData.isTyping && !_isTypingLocally) {
+                  return Container(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text(
+                      "Someone is typing...",
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -181,6 +238,25 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _messageController,
+                      onChanged: (text) {
+                        final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                        if (!_isTypingLocally) {
+                          setState(() {
+                            _isTypingLocally = true;
+                          });
+                          chatProvider.emitTyping(widget.chat.id);
+                        }
+                        
+                        _typingTimer?.cancel();
+                        _typingTimer = Timer(const Duration(seconds: 3), () {
+                          if (_isTypingLocally) {
+                            setState(() {
+                              _isTypingLocally = false;
+                            });
+                            chatProvider.emitStopTyping(widget.chat.id);
+                          }
+                        });
+                      },
                       decoration: InputDecoration(
                         hintText: "Type a message...",
                         filled: true,

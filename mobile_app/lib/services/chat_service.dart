@@ -54,6 +54,26 @@ class ChatService {
     }
   }
 
+  Future<List<Message>> markMessagesAsRead(List<String> messageIds, String token) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/message/read'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "messageIds": messageIds,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+         List<dynamic> body = jsonDecode(response.body);
+         return body.map((dynamic item) => Message.fromJson(item)).toList();
+    } else {
+      throw Exception("Failed to mark messages as read");
+    }
+  }
+
   Future<Chat> accessChat(String userId, String token) async {
     final response = await http.post(
       Uri.parse('$baseUrl/chat'),

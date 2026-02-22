@@ -7,6 +7,7 @@ class Message {
   final String content;
   final Chat? chat;
   final DateTime createdAt;
+  final List<String> readBy;
 
   Message({
     required this.id,
@@ -14,6 +15,7 @@ class Message {
     required this.content,
     this.chat,
     required this.createdAt,
+    this.readBy = const [],
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class Message {
           ? Chat.fromJson(json['chat'])
           : null,
       createdAt: DateTime.parse(json['createdAt']),
+      readBy: json['readBy'] != null ? List<String>.from(json['readBy']) : [],
     );
   }
   Map<String, dynamic> toJson() {
@@ -36,6 +39,7 @@ class Message {
       'content': content,
       'chat': chat?.toJson(),
       'createdAt': createdAt.toIso8601String(),
+      'readBy': readBy,
     };
   }
 }
