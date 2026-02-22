@@ -77,4 +77,36 @@ const allUsers = async (req, res) => {
   res.send(users);
 };
 
-module.exports = { registerUser, authUser, allUsers };
+// @description     Update user FCM token for Push Notifications
+// @route           POST /api/user/fcm-token
+// @access          Protected
+const updateFcmToken = async (req, res) => {
+  const { fcmToken } = req.body;
+
+  if (!fcmToken) {
+    return res.status(400).json({ message: "No FCM Token provided" });
+  }
+
+  try {
+    // Use findByIdAndUpdate to bypass the bcrypt pre-save hook (which re-hashes the password)
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { fcmToken: fcmToken },
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log(`[FCM] Token saved for user: ${updatedUser.name}`);
+    res.json({ message: "FCM Token updated successfully" });
+  } catch (error) {
+    console.error("[FCM] Error saving token:", error.message);
+    res
+      .status(500)
+      .json({ message: "Error updating FCM token", error: error.message });
+  }
+};
+
+module.exports = { registerUser, authUser, allUsers, updateFcmToken };

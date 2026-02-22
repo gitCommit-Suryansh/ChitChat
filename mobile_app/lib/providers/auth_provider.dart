@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -18,6 +19,10 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _user = await _authService.login(email, password);
+      // Initialize Firebase Push Notifications and upload token to backend
+      if (_user != null) {
+        await NotificationService.initialize(_user!.token);
+      }
     } catch (e) {
       _isLoading = false;
       notifyListeners();
@@ -34,6 +39,10 @@ class AuthProvider with ChangeNotifier {
 
     try {
       _user = await _authService.signup(name, email, password, pic);
+      // Initialize Firebase Push Notifications and upload token to backend
+      if (_user != null) {
+        await NotificationService.initialize(_user!.token);
+      }
     } catch (e) {
       _isLoading = false;
       notifyListeners();
@@ -56,6 +65,10 @@ class AuthProvider with ChangeNotifier {
 
     final extractedUserData = json.decode(prefs.getString('userInfo')!) as Map<String, dynamic>;
     _user = User.fromJson(extractedUserData);
+    
+    // Auto-login successful, initialize notifications
+    await NotificationService.initialize(_user!.token);
+    
     notifyListeners();
   }
 }

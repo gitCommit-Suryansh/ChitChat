@@ -1,6 +1,7 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
 const Chat = require("../models/Chat");
+const { sendPushNotification } = require("../services/firebaseService");
 
 // @description     Get all Messages
 // @route           GET /api/message/:chatId
@@ -41,10 +42,31 @@ const sendMessage = async (req, res) => {
     message = await message.populate("chat");
     message = await User.populate(message, {
       path: "chat.users",
-      select: "name pic email",
+      select: "name pic email fcmToken",
     });
 
     await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: message });
+
+    // --- FIREBASE PUSH NOTIFICATION LOGIC ---
+    message.chat.users.forEach((user) => {
+      // Don't send notification to the person who sent the message
+      if (user._id.toString() !== req.user._id.toString()) {
+        if (user.fcmToken && user.fcmToken.trim() !== "") {
+          let notificationTitle = !message.chat.isGroupChat
+            ? message.sender.name
+            : `${message.sender.name} in ${message.chat.chatName}`;
+
+          sendPushNotification(
+            user.fcmToken,
+            notificationTitle,
+            message.content,
+            {
+              chatId: message.chat._id.toString(),
+            },
+          );
+        }
+      }
+    });
 
     res.json(message);
   } catch (error) {
